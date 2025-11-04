@@ -17,7 +17,8 @@ async def verify(request: Request):
         print("✅ WEBHOOK VERIFIED")
         return int(challenge)
 
-    return {"error": "Invalid token"}, 403
+    return {"message": "NutriTracker API is live!"}
+
 
 @app.post("/")
 async def webhook(request: Request):

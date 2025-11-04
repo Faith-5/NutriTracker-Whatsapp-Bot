@@ -37,16 +37,18 @@ class HybridMemory:
         short_hist = self.short.messages
         return long_hist + short_hist
 
-    # ✅ REQUIRED for RunnableWithMessageHistory
+    # ✅ LangChain Requires This Name
+    # Required by LangChain
     def get_messages(self):
         return self.messages
 
+    # Required by LangChain
     def add_messages(self, messages):
-        for msg in messages:
-            self.short.add_message(msg)
+        for message in messages:
+            self.short.add_message(message)
 
-            if isinstance(msg, HumanMessage):
-                self.last_messages.append(msg.content)
+            if isinstance(message, HumanMessage):
+                self.last_messages.append(message.content)
                 if len(self.last_messages) > 3:
                     self.last_messages.pop(0)
 
@@ -59,53 +61,75 @@ class HybridMemory:
                     else:
                         self.repetition_count = 0
 
-        self.write_counter += 1
-        if self.write_counter >= 4:
-            if len(self.short.messages) >= 2:
+            # save summary every X messages
+            self.write_counter += 1
+            if self.write_counter >= 4:
                 last_user = next((m for m in reversed(self.short.messages) if isinstance(m, HumanMessage)), None)
                 last_bot = next((m for m in reversed(self.short.messages) if isinstance(m, AIMessage)), None)
                 if last_user and last_bot:
                     self.long.save_context({"input": last_user.content}, {"output": last_bot.content})
+                self.write_counter = 0
+
+
+        # Move to long-term memory periodically
+        self.write_counter += 1
+        if self.write_counter >= 4:
+            last_user = next((m for m in reversed(self.short.messages) if isinstance(m, HumanMessage)), None)
+            last_bot = next((m for m in reversed(self.short.messages) if isinstance(m, AIMessage)), None)
+
+            if last_user and last_bot:
+                self.long.save_context(
+                    {"input": last_user.content},
+                    {"output": last_bot.content}
+                )
+
             self.write_counter = 0
 
+    # ✅ Safe repetition similarity check
     def _detect_repetition(self):
         if len(set(self.last_messages)) == 1:
             return True
-        similar_count = 0
+
+        similar = 0
         for i in range(len(self.last_messages) - 1):
-            msg1 = self.last_messages[i].lower()
-            msg2 = self.last_messages[i+1].lower()
-            if len(set(msg1.split()) & set(msg2.split())) / len(set(msg1.split() + msg2.split())) > 0.7:
-                similar_count += 1
-        return similar_count >= 2
+            msg1 = set(self.last_messages[i].lower().split())
+            msg2 = set(self.last_messages[i+1].lower().split())
+            union = msg1 | msg2
+
+            if len(union) == 0:
+                continue
+
+            if len(msg1 & msg2) / len(union) > 0.7:
+                similar += 1
+
+        return similar >= 2
 
     def _reset_context(self):
-        last_exchange = None
-        if len(self.short.messages) >= 2:
-            last_user = next((m for m in reversed(self.short.messages) if isinstance(m, HumanMessage)), None)
-            last_bot = next((m for m in reversed(self.short.messages) if isinstance(m, AIMessage)), None)
-            if last_user and last_bot:
-                last_exchange = (last_user, last_bot)
+        last_user = next((m for m in reversed(self.short.messages) if isinstance(m, HumanMessage)), None)
+        last_bot = next((m for m in reversed(self.short.messages) if isinstance(m, AIMessage)), None)
 
         self.clear()
 
-        self.short.add_message(AIMessage(content="I notice we might be going in circles. Let's start fresh with your question."))
+        # Inform user
+        self.short.add_message(AIMessage(content="It looks like we're repeating ourselves. Let's restart."))
 
-        if last_exchange:
-            self.short.add_message(last_exchange[0])
-            self.short.add_message(last_exchange[1])
+        # Restore last turn for continuity
+        if last_user: self.short.add_message(last_user)
+        if last_bot: self.short.add_message(last_bot)
 
     def clear(self):
         self.short = ChatMessageHistory()
         self.long = ConversationSummaryBufferMemory(
             llm=llm, max_token_limit=200, return_messages=True
         )
-        self.write_counter = 0
         self.last_messages = []
         self.repetition_count = 0
+        self.write_counter = 0
 
 
+# ---- SESSION STORE (use phone number as ID in WhatsApp) ----
 session_store = {}
+
 def get_session_history(session_id: str):
     if session_id not in session_store:
         session_store[session_id] = HybridMemory()
@@ -124,7 +148,7 @@ Assistant:""",
 )
 
 
-# ---- CHAIN ----
+# ---- LLM CHAIN ----
 chain = (
     {
         "input": RunnablePassthrough(),
@@ -143,7 +167,7 @@ chain_with_history = RunnableWithMessageHistory(
 )
 
 
-# ---- BOT FUNCTION ----
+# ---- BOT ENTRY FUNC ----
 def run_bot(message: str, session_id: str):
     response = chain_with_history.invoke(
         {"input": message},

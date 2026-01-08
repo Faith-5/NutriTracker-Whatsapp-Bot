@@ -1,6 +1,6 @@
-# 🥗 NutriTracker AI — WhatsApp Nutrition Assistant
+# 🥗 NutriTracker AI: WhatsApp Nutrition Assistant
 
-NutriTracker is an AI-powered WhatsApp nutrition assistant that helps users eat healthier by generating meal plans, suggesting recipes based on available ingredients, and offering personalized nutrition guidance — all through WhatsApp chat.
+NutriTracker is an AI-powered WhatsApp nutrition assistant that helps users eat healthier by generating meal plans, suggesting recipes based on available ingredients, and offering personalized nutrition guidance all through WhatsApp chat.
 
 Powered by **FastAPI**, **LangChain**, and **Google Gemini**, NutriTracker provides quick and reliable diet recommendations while remembering previous conversations for a smooth experience.
 
@@ -10,7 +10,7 @@ Powered by **FastAPI**, **LangChain**, and **Google Gemini**, NutriTracker provi
 
 ✅ Personalized nutrition chat assistant  
 ✅ Generate recipes using ingredients users already have  
-✅ Create 1-day, 3-day, or 7-day meal plans  
+✅ Create meal plans  
 ✅ Memory-enabled chat for natural conversations  
 ✅ WhatsApp Cloud API integration  
 ✅ FastAPI backend + LangChain + Gemini  

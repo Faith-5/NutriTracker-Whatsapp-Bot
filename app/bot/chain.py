@@ -22,7 +22,7 @@ class SimpleMemory:
         self.short = ChatMessageHistory()
         self.summary = ConversationSummaryBufferMemory(
             llm=llm,
-            max_token_limit=150,  # very small
+            max_token_limit=200,
             return_messages=True
         )
 
@@ -40,8 +40,7 @@ class SimpleMemory:
             self.short.add_message(message)
 
             # keep last 3 turns only
-            if len(self.short.messages) > 6:  # 3 user + 3 bot
-                # summarize and flush old short history
+            if len(self.short.messages) > 6:
                 last_user = next((m for m in reversed(self.short.messages) if isinstance(m, HumanMessage)), None)
                 last_bot = next((m for m in reversed(self.short.messages) if isinstance(m, AIMessage)), None)
 

@@ -21,3 +21,4 @@ def send_whatsapp_message(to, message: str):
     }
 
     response = requests.post(url, json=payload, headers=headers)
+    

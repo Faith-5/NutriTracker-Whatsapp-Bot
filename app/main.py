@@ -5,7 +5,7 @@ from app.config import VERIFY_TOKEN
 
 app = FastAPI()
 
-@app.get("/")
+@app.get("/") 
 async def verify(request: Request):
     params = dict(request.query_params)
 
